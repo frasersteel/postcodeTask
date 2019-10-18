@@ -1,0 +1,138 @@
+import urllib.request
+import json
+from math import radians, cos, sin, asin, sqrt
+from collections import defaultdict
+
+import node as node
+
+
+class PostCode:
+    def __init__(self, lng, lat, name):
+        self.lat = lat
+        self.lng = lng
+        self.name = name
+
+
+def findPostCodeLongLat(postcode):
+    res = urllib.request.urlopen("http://api.postcodes.io/postcodes/" + postcode).read()
+    data = json.loads(res.decode())
+    post = PostCode(data["result"]["longitude"], data["result"]["latitude"], postcode)
+    return post
+
+
+def findRandomPostcode():
+    res = urllib.request.urlopen("http://api.postcodes.io/random/postcodes").read()
+    data = json.loads(res.decode())
+    post = PostCode(data["result"]["longitude"], data["result"]["latitude"], data["result"]["postcode"])
+    return post
+
+
+def haversine(post1, post2):
+    post1 = findPostCodeLongLat(post1)
+    post2 = findPostCodeLongLat(post2)
+
+    if ((post1.lng or post2.lng or post1.lat or post2.lat) is None):
+        return 0
+
+    lon1 = post1.lng
+    lat1 = post1.lat
+    lon2 = post2.lng
+    lat2 = post2.lat
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    r = 6373.0  # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
+
+
+listOfPostcodes = ['BH233HL', 'SE100PX', 'EX108XB', 'KY84AS', 'ML20BX', 'IP215QA', 'M169RX', 'BL17PE', 'AB219DG', 'CH40SX']
+
+
+class Distance :
+    def __init__(self, postcode1, postcode2, distance):
+        self.postcode1 = postcode1
+        self.postcode2 = postcode2
+        self.distance = distance
+
+def listOfDistances(a):
+    distances = []
+    for i in range(len(a)):
+        for j in range(i + 1, len(a)):
+            value = haversine(a[i], a[j])
+            dis = Distance(a[i], a[j], value)
+            distances.append(dis)
+    return distances
+
+
+list = listOfDistances(listOfPostcodes)
+
+newList = sorted(list, key=lambda Distance: Distance.distance)
+
+# for x in range(len(list)):
+#     print(newList[x].postcode1, newList[x].postcode2, newList[x].distance)
+#
+
+
+class Graph():
+    def __init__(self):
+        self.edges = defaultdict(list)
+        self.weights ={}
+    def add_edge(self,fromNode,toNode,weight):
+        self.edges[fromNode].append[toNode]
+        self.edges[toNode].append(fromNode)
+        self.weights[(fromNode,toNode)] = weight
+        self.weights[(toNode,fromNode)] = weight
+
+
+graph = Graph()
+
+
+for edge in listOfPostcodes:
+    graph.add_edge(*edge)
+
+
+
+    def dijk(graph,start,end):
+        shortestPath ={start: (None, 0)}
+        current = start
+        visited = set()
+
+        while current != end:
+            visited.add(current)
+            destinations = graph.edges[current]
+            weightToCurrent = shortestPath[current][1]
+
+            for next in destinations:
+                weight = graph.weights[(current,next)] + weightToCurrent
+                if next not in shortestPath:
+                    shortestPath[next] = (current,weight)
+                else:
+                    current_Shortest = shortestPath[next][1]
+                    if current_Shortest > weight:
+                        shortestPath[next] = (current,weight)
+
+            nextDest = {node: shortestPath[node] for node in shortestPath if node not in visited}
+            if not nextDest:
+                 return 'Route not possible'
+            current_node = min(nextDest, key=lambda k: nextDest[k][1])
+        path = []
+        while current is not None:
+            path.append(current)
+            next = shortestPath[current][0]
+            current = next
+        path = path[:-1]
+        return path
+
+
+    dijk(graph, 'BH233HL', 'KY84AS')
+
+
+
+
+
+
